@@ -180,5 +180,50 @@ def sync_command(path: str) -> None:
     run_sync(vault_path=path)
 
 
+# ---------------------------------------------------------------------------
+# `serve-api` command
+# ---------------------------------------------------------------------------
+
+
+@cli.command("serve-api")
+@click.option(
+    "--vault",
+    "vault_specs",
+    multiple=True,
+    metavar="ID:PATH",
+    help="Register a vault as ID:PATH (repeatable).",
+)
+@click.option("--host", default="127.0.0.1", show_default=True, help="Bind address.")
+@click.option("--port", default=8000, show_default=True, type=int, help="Bind port.")
+def serve_api_command(vault_specs: tuple[str, ...], host: str, port: int) -> None:
+    """Start the BrainVault REST API server (multi-vault, multi-user)."""
+    from brainvault.api.app import create_app
+
+    vault_dirs: dict[str, str] = {}
+    for spec in vault_specs:
+        if ":" not in spec:
+            console.print(f"[red]Invalid vault spec {spec!r} – expected ID:PATH[/red]")
+            sys.exit(1)
+        vid, vpath = spec.split(":", 1)
+        vault_dirs[vid] = vpath
+
+    app = create_app(vault_dirs=vault_dirs)
+    console.print(
+        f"[green]REST API server starting[/green] at http://{host}:{port}\n"
+        f"Registered {len(vault_dirs)} vault(s): {', '.join(vault_dirs) or '(none)'}\n"
+        "Press Ctrl+C to stop."
+    )
+
+    try:
+        import uvicorn
+    except ImportError:
+        console.print(
+            "[red]uvicorn is required. Install with: pip install brainvault[api][/red]"
+        )
+        sys.exit(1)
+
+    uvicorn.run(app, host=host, port=port)
+
+
 if __name__ == "__main__":
     cli()

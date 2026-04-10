@@ -386,11 +386,103 @@ ruff check src/ tests/
 
 ---
 
+## REST API (Multi-User, Multi-Vault)
+
+BrainVault includes a RESTful HTTP API powered by [FastAPI](https://fastapi.tiangolo.com/) that supports multiple vaults and JWT-based authentication.
+
+### Installation
+
+```bash
+# With REST API support
+pip install "brainvault[api]"
+
+# Everything (S3 + PostgreSQL + REST API)
+pip install "brainvault[all]"
+```
+
+### Quick Start
+
+```bash
+# 1. Initialise one or more vaults
+brainvault init /data/vaults/alice
+brainvault init /data/vaults/bob
+
+# 2. Start the REST API server with both vaults
+brainvault serve-api \
+  --vault alice:/data/vaults/alice \
+  --vault bob:/data/vaults/bob \
+  --host 0.0.0.0 --port 8000
+
+# 3. Open the auto-generated docs at http://localhost:8000/docs
+```
+
+### Authentication
+
+All endpoints (except token issuance) require a JWT bearer token:
+
+```bash
+# Get a token
+curl -X POST http://localhost:8000/api/v1/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "alice"}'
+# → {"access_token": "eyJ...", "token_type": "bearer"}
+
+# Use the token
+export TOKEN="eyJ..."
+curl http://localhost:8000/api/v1/vaults \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Set `BRAINVAULT_API_SECRET` to a strong secret in production (≥ 32 characters).
+
+### API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/v1/auth/token` | Issue a JWT token |
+| `GET` | `/api/v1/vaults` | List all registered vaults |
+| `GET` | `/api/v1/vaults/{vault_id}` | Get vault info |
+| `DELETE` | `/api/v1/vaults/{vault_id}` | Unregister a vault |
+| `GET` | `/api/v1/vaults/{vault_id}/status` | Vault status & page count |
+| `GET` | `/api/v1/vaults/{vault_id}/pages` | List wiki pages |
+| `GET` | `/api/v1/vaults/{vault_id}/pages/{path}` | Read a page |
+| `PUT` | `/api/v1/vaults/{vault_id}/pages/{path}` | Create/update a page |
+| `DELETE` | `/api/v1/vaults/{vault_id}/pages/{path}` | Delete a page |
+| `GET` | `/api/v1/vaults/{vault_id}/search?q=...` | Full-text search |
+| `POST` | `/api/v1/vaults/{vault_id}/sync` | Trigger wiki → DB sync |
+
+### Python Client Example
+
+```python
+import httpx
+
+base = "http://localhost:8000/api/v1"
+
+# Get token
+resp = httpx.post(f"{base}/auth/token", json={"user_id": "alice"})
+token = resp.json()["access_token"]
+headers = {"Authorization": f"Bearer {token}"}
+
+# Write a page
+httpx.put(
+    f"{base}/vaults/alice/pages/wiki/hello.md",
+    json={"path": "wiki/hello.md", "content": "# Hello\\nWorld."},
+    headers=headers,
+)
+
+# Search
+results = httpx.get(f"{base}/vaults/alice/search?q=Hello", headers=headers)
+print(results.json())
+```
+
+---
+
 ## Roadmap
 
 - [ ] `brainvault import` – ingest PDFs, web pages, and audio transcripts into `raw/`
 - [ ] Embedding backend (`pgvector`, `sqlite-vss`) for semantic search
 - [ ] Entity extraction pipeline
+- [x] REST API (multi-user, multi-vault)
 - [ ] Web UI (read-only Markdown browser)
 - [ ] Docker Compose stack (PostgreSQL + MinIO + BrainVault)
 - [ ] GitHub Actions workflow for scheduled `auto_lint`
