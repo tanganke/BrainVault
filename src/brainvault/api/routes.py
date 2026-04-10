@@ -9,10 +9,13 @@ each vault's data is isolated.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 from brainvault.api.auth import create_token, get_current_user
 from brainvault.api.vault_manager import VaultHandle, VaultManager
@@ -286,6 +289,7 @@ def create_router(vault_manager: VaultManager) -> APIRouter:
                 h.db.sync_page(fp)
                 synced += 1
             except Exception:
+                logger.exception("Failed to sync page %s", fp)
                 errors += 1
         return {"synced": synced, "errors": errors}
 
