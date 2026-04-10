@@ -1,0 +1,52 @@
+# BrainVault Configuration – Multi-Backend Support
+version: "1.1"
+
+# ====================== STORAGE BACKEND ======================
+storage:
+  type: "local"          # or "s3"
+  # Local FS settings
+  local:
+    root_path: "."       # relative to vault root (or absolute)
+  # S3 settings (used only when type=s3)
+  s3:
+    endpoint: ""         # e.g. "https://s3.ap-southeast-1.tencentcos.com"
+    bucket: ""           # e.g. "my-brainvault"
+    prefix: ""           # optional sub-path, e.g. "brainvault/"
+    access_key_id: ""    # use env var BRAINVAULT_S3_ACCESS_KEY in production
+    secret_access_key: "" # use env var BRAINVAULT_S3_SECRET_KEY in production
+    region: ""           # e.g. "ap-southeast-1"
+
+# ====================== DATABASE BACKEND ======================
+database:
+  type: "sqlite"         # or "postgresql"
+  # SQLite (default, local-first, zero-config)
+  sqlite:
+    file_path: "db/brainvault.db"
+    journal_mode: "wal"  # recommended for concurrency
+  # PostgreSQL (cloud / team scale)
+  postgresql:
+    host: "localhost"
+    port: 5432
+    database: "brainvault"
+    user: "brainvault_user"
+    password: ""         # use env var BRAINVAULT_DB_PASSWORD in production
+    ssl_mode: "prefer"
+    pool_size: 10
+
+# ====================== LLM & MCP SETTINGS ======================
+llm:
+  provider: "openclaws"  # or claude, grok, etc. – MCP will route
+  model: "claude-3.7-sonnet"
+  temperature: 0.3
+
+mcp:
+  enabled: true
+  socket_path: ".brainvault/mcp/brainvault.sock"
+
+# ====================== MAINTENANCE ======================
+auto_lint:
+  enabled: true
+  cron: "0 3 * * 0"     # every Sunday at 3am
+  notify:
+    - "email"
+    - "webhook"
