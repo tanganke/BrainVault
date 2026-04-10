@@ -12,6 +12,7 @@ Design goals:
 
 from __future__ import annotations
 
+import hashlib
 import re
 
 
@@ -190,9 +191,6 @@ def extract_links(content: str) -> list[str]:
             seen.add(t)
             result.append(t)
     return result
-
-
-import hashlib
 
 
 def content_checksum(content: str) -> str:
