@@ -1,0 +1,18 @@
+# BrainVault vault .gitignore
+
+# Internal runtime state (not version-controlled)
+.brainvault/cache/
+.brainvault/mcp/
+
+# Database file (SQLite – re-derivable from wiki/)
+db/brainvault.db
+db/brainvault.db-wal
+db/brainvault.db-shm
+
+# Environment / secrets
+.env
+.envrc
+
+# OS artefacts
+.DS_Store
+Thumbs.db
